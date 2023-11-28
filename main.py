@@ -5,7 +5,10 @@ import subprocess
 import tkinter as tk
 from tkinter import Button, Label, font
 from PIL import Image, ImageTk
+import ctypes
 
+
+ctypes.windll.user32.MessageBoxW(0, "Preforming System Cleanup", "Cetera", 64)
 def clear_temp_files():
     user_temp_dir = os.environ.get('TEMP')
     if user_temp_dir:
@@ -14,7 +17,7 @@ def clear_temp_files():
             shutil.rmtree(user_temp_dir, ignore_errors=True)
             os.makedirs(user_temp_dir, exist_ok=True)
             print("User temporary files cleared successfully.")
-        except Exception as e:
+        except OSError as e:
             print(f"Error clearing user temporary files: {e}")
     else:
         print("Unable to retrieve the user TEMP environment variable.")
@@ -27,16 +30,16 @@ def clear_temp_files():
                 file_path = os.path.join(root, file)
                 try:
                     os.remove(file_path)
-                except Exception as e:
+                except OSError as e:
                     print(f"Error deleting file {file_path}: {e}")
             for dir in dirs:
                 dir_path = os.path.join(root, dir)
                 try:
                     os.rmdir(dir_path)
-                except Exception as e:
+                except OSError as e:
                     print(f"Error deleting directory {dir_path}: {e}")
         print("System temporary files cleared successfully.")
-    except Exception as e:
+    except OSError as e:
         print(f"Error clearing system temporary files: {e}")
 
 def flush_dns_cache():
@@ -61,7 +64,7 @@ def clear_browser_data(browser_name):
             return
 
         print(f"{browser_name} temporary files cleared successfully.")
-    except Exception as e:
+    except OSError as e:
         print(f"Error clearing browser temporary files: {e}")
 
 def gp_update():
@@ -79,7 +82,8 @@ def cleanup_button_clicked():
     clear_browser_data('edge')
     gp_update()
 
-    print("Cleanup successful. Exiting program.")
+    print("Cleanup successful. Displaying system cleanup message.")
+    ctypes.windll.user32.MessageBoxW(0, "System Cleanup Complete", "Cetera", 48)
     sys.exit()
 
 def run_wmic_task(schedule_id):
@@ -95,14 +99,17 @@ def create_gui():
     root.title("Cetera Clean Up Utility")
     root.configure(bg="#282c34")  # Set a dark background color
 
-    icon_path = "C:/Users/wchristner/Pictures/ceteraicon.ico"
+    icon_path = os.path.join("C:/Users/wchristner/Pictures", "ceteraicon.ico")
     root.iconbitmap(default=icon_path)
 
-    image_path = "C:/Users/wchristner/Pictures/Cetera.jpg"
-    img = Image.open(image_path)
-    img = ImageTk.PhotoImage(img)
-    image_label = Label(root, image=img, bg="#282c34")  # Set a dark background color
-    image_label.pack(side="top", pady=0)
+    image_path = os.path.join("C:/Users/wchristner/Pictures", "Cetera.jpg")
+    if os.path.exists(icon_path) and os.path.exists(image_path):
+        with Image.open(image_path) as img:
+            img = ImageTk.PhotoImage(img)
+            image_label = Label(root, image=img, bg="#282c34")  # Set a dark background color
+            image_label.pack(side="top", pady=0)
+    else:
+        print("Image files not found.")
 
     button_font = font.Font(family='Arial', size=12, weight='normal')
     cleanup_button = Button(root, text="Click To Run Clean Up", command=cleanup_button_clicked, font=button_font,
@@ -120,7 +127,12 @@ def create_gui():
     for schedule_id in additional_actions:
         run_wmic_task(schedule_id)
 
-    root.mainloop()
+    try:
+        root.mainloop()
+    except Exception as e:
+        print(f"An error occurred in the GUI: {e}")
+
+
 
 if __name__ == "__main__":
     create_gui()
